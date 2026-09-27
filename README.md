@@ -94,3 +94,13 @@ NexusAI is an enterprise-grade Agentic AI platform that orchestrates specialized
 - Redis
 
 Project is under active development.
+
+
+### Commands for running the agents
+ - python -m uvicorn apps.AGENT_NAME.app:app --reload --port PORT_NUMBER
+ - eg: python -m uvicorn apps.weather_agent.app:app --reload --port 8002
+ - eg: python -m uvicorn apps.orchestrator_agent.app:app --reload --port 8000
+ - eg: python -m uvicorn apps.news_agent.app:app --reload --port 8001
+### To see the output 
+ - http://127.0.0.1:PORT_NUMBER/docs
+ - http://127.0.0.1:8000/docs

@@ -1,0 +1,14 @@
+Why core/?
+
+Because every future agent should share common behavior.
+
+For example, every agent should have:
+
+Name
+Version
+Health check
+Logger
+Configuration
+HTTP client
+
+Instead of rewriting this six times, we'll build it once.
