@@ -96,7 +96,7 @@ class OrchestratorService(BaseAgent):
         prompt = f"""
 You are the query understanding system for a multi-agent AI platform.
 
-The available agents are:
+Available agents:
 
 1. weather
    Handles weather, temperature, humidity, rain, wind and forecasts.
@@ -107,18 +107,35 @@ The available agents are:
 3. unknown
    Use when the query does not belong to weather or news.
 
-Extract the required information from the user's query.
+
+Available intents:
+
+Weather:
+- current_weather
+- forecast
+
+News:
+- latest_news
+
+Unknown:
+- unknown
+
 
 Return ONLY valid JSON in this exact format:
 
 {{
     "agent": "weather or news or unknown",
+    "intent": "current_weather or forecast or latest_news or unknown",
     "city": "city name or null",
     "topic": "news topic or null"
 }}
 
+
 Rules:
 
+- If the user asks about current weather, use "current_weather".
+- If the user asks about future weather or forecast, use "forecast".
+- If the user asks for latest news, headlines or current events, use "latest_news".
 - For weather queries, extract the city.
 - For news queries, extract the news topic.
 - If a city cannot be identified, use null.
@@ -126,12 +143,14 @@ Rules:
 - Do not add explanations.
 - Return JSON only.
 
+
 User query:
 {query}
 """
 
-
         try:
+
+            print("Sending query to Ollama...")
 
             response = httpx.post(
                 self.ollama_url,
@@ -155,10 +174,11 @@ User query:
 
             content = data["message"]["content"]
 
+            print("Ollama Response:", content)
+
             result = json.loads(content)
 
             return result
-
 
         except httpx.TimeoutException:
 
@@ -166,13 +186,11 @@ User query:
                 "error": "Ollama request timed out"
             }
 
-
         except httpx.RequestError:
 
             return {
                 "error": "Could not connect to Ollama"
             }
-
 
         except (KeyError, json.JSONDecodeError):
 
@@ -182,7 +200,7 @@ User query:
 
 
     # =====================================================
-    # NATURAL LANGUAGE QUERY
+    # PROCESS NATURAL LANGUAGE QUERY
     # =====================================================
 
     def process_query(self, query: str):
@@ -199,17 +217,23 @@ User query:
             return result
 
 
+        # Extract structured information
+
         agent = result.get("agent")
+        intent = result.get("intent")
         city = result.get("city")
         topic = result.get("topic")
 
 
         print("User Query:", query)
-        print("LLM Result:", result)
+        print("Agent:", agent)
+        print("Intent:", intent)
+        print("City:", city)
+        print("Topic:", topic)
 
 
         # =================================================
-        # WEATHER
+        # WEATHER AGENT
         # =================================================
 
         if agent == "weather":
@@ -220,11 +244,26 @@ User query:
                     "error": "I could not identify the city"
                 }
 
-            return self.get_weather(city)
+
+            # Currently our Weather Agent supports
+            # current weather.
+
+            if intent == "current_weather":
+
+                return self.get_weather(city)
+
+
+            # Forecast will be implemented later.
+
+            if intent == "forecast":
+
+                return {
+                    "message": "Forecast support will be added soon."
+                }
 
 
         # =================================================
-        # NEWS
+        # NEWS AGENT
         # =================================================
 
         if agent == "news":
@@ -235,7 +274,10 @@ User query:
                     "error": "I could not identify the news topic"
                 }
 
-            return self.get_news(topic)
+
+            if intent == "latest_news":
+
+                return self.get_news(topic)
 
 
         # =================================================
