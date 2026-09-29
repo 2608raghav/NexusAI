@@ -101,6 +101,8 @@ Project is under active development.
  - eg: python -m uvicorn apps.weather_agent.app:app --reload --port 8002
  - eg: python -m uvicorn apps.orchestrator_agent.app:app --reload --port 8000
  - eg: python -m uvicorn apps.news_agent.app:app --reload --port 8001
+ - eg: python -m uvicorn apps.email_agent.app:app --reload --port 8003
+
 ### To see the output 
  - http://127.0.0.1:PORT_NUMBER/docs
  - http://127.0.0.1:8000/docs
