@@ -16,6 +16,7 @@ class OrchestratorService(BaseAgent):
         self.news_agent_url = "http://127.0.0.1:8001"
         self.weather_agent_url = "http://127.0.0.1:8002"
         self.email_agent_url = "http://127.0.0.1:8003"
+        self.finance_agent_url = "http://127.0.0.1:8004"
 
 
         # Ollama
@@ -127,7 +128,41 @@ class OrchestratorService(BaseAgent):
             return {
               "error": "Could not connect to Email Agent"
         }
-    
+
+
+      # =====================================================
+      # FINANCE AGENT COMMUNICATION
+      # =====================================================
+
+    def get_stock_price(self, symbol: str):
+
+        try:
+
+            response = httpx.get(
+                f"{self.finance_agent_url}/stock",
+                params={
+                    "symbol": symbol
+                },
+                timeout=120.0
+            )
+
+            response.raise_for_status()
+
+            return response.json()
+
+        except httpx.TimeoutException:
+
+            return {
+                "error": "Finance Agent request timed out"
+            }
+
+        except httpx.RequestError:
+
+            return {
+                "error": "Could not connect to Finance Agent"
+            }
+
+
     # =====================================================
     # LLM QUERY UNDERSTANDING
     # =====================================================
@@ -150,7 +185,10 @@ Available agents:
 3. email
    Handles sending emails.
 
-4. unknown
+4. finance
+   Handles stock prices and financial market information.   
+
+5. unknown
    Use when the query does not belong to weather, news or email.
 
 
@@ -166,6 +204,9 @@ News:
 Email:
 - send_email
 
+Finance:
+- stock_price
+
 Unknown:
 - unknown
 
@@ -180,6 +221,7 @@ Return ONLY valid JSON in this exact format:
     "recipient": "email address or null",
     "subject": "email subject or null",
     "body": "email body or null"
+    "symbol": "stock symbol or null"
 }}
 
 
@@ -199,6 +241,9 @@ Rules:
 - If a news topic cannot be identified, use null.
 - Do not add explanations.
 - Return JSON only.
+- If the user asks for a stock price, use "stock_price".
+- For finance queries, extract the stock symbol.
+- If the stock symbol cannot be identified, use null.
 
 
 User query:
@@ -285,6 +330,8 @@ User query:
         subject = result.get("subject")
         body = result.get("body")
 
+        symbol = result.get("symbol")
+
 
         print("User Query:", query)
         print("Agent:", agent)
@@ -294,6 +341,7 @@ User query:
         print("Recipient:", recipient)
         print("Subject:", subject)
         print("Body:", body)
+        print("Symbol:", symbol)
 
 
         # =================================================
@@ -372,6 +420,22 @@ User query:
                     subject,
                     body
                 )
+            
+           # =================================================
+           # FINANCE AGENT
+           # =================================================
+           
+        if agent == "finance":
+
+            if intent == "stock_price":
+
+                if not symbol:
+                    return {
+                        "error": "I could not identify the stock symbol"
+                    }
+
+                return self.get_stock_price(symbol)   
+
 
         # =================================================
         # UNKNOWN
