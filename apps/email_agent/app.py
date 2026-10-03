@@ -19,15 +19,13 @@ def root():
     }
 
 
-@app.post("/send")
-def send_email(
+@app.post("/compose")
+def compose_email(
     recipient: str,
-    subject: str,
-    body: str
+    request: str
 ):
 
-    return service.send_email(
+    return service.compose_email(
         recipient,
-        subject,
-        body
+        request
     )

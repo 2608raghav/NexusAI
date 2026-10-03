@@ -1,3 +1,6 @@
+import json
+import httpx
+
 from shared.core.base_agent import BaseAgent
 
 
@@ -10,23 +13,89 @@ class EmailService(BaseAgent):
             version="1.0"
         )
 
-    def send_email(
+        self.ollama_url = "http://127.0.0.1:11434/api/chat"
+        self.model = "qwen3:8b"
+
+    def compose_email(
         self,
         recipient: str,
-        subject: str,
-        body: str
+        request: str
     ):
 
         print("Email Agent received request")
 
         print("Recipient:", recipient)
-        print("Subject:", subject)
-        print("Body:", body)
+        print("Request:", request)
 
-        return {
-            "status": "success",
-            "message": "Email request received",
-            "recipient": recipient,
-            "subject": subject,
-            "body": body
-        }
+        prompt = f"""
+You are a professional email writing assistant.
+
+Write a clear, polite and professional email based on the user's request.
+
+Recipient:
+{recipient}
+
+User request:
+{request}
+
+Return ONLY valid JSON in this exact format:
+
+{{
+    "subject": "email subject",
+    "body": "complete email body"
+}}
+
+Do not add markdown.
+Do not add explanations.
+"""
+
+        try:
+
+            response = httpx.post(
+                self.ollama_url,
+                json={
+                    "model": self.model,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    "stream": False
+                },
+                timeout=120.0
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+
+            email_data = json.loads(content)
+
+            content = data["message"]["content"]
+
+            print("Generated email:")
+            print(content)
+
+            return {
+                "status": "success",
+                "recipient": recipient,
+                "subject": email_data["subject"],
+                "body": email_data["body"],
+                
+            }
+
+        except httpx.TimeoutException:
+
+            return {
+                "status": "error",
+                "message": "Email generation timed out"
+            }
+
+        except httpx.RequestError:
+
+            return {
+                "status": "error",
+                "message": "Could not connect to Ollama"
+            }
